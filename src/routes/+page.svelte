@@ -1,4 +1,7 @@
 <!-- Grid container splits remaining space into 3 fractions -->
+<script lang="ts">
+  import Globe from '#lib/components/Globe.svelte'
+</script>
 <div class="grid flex-1 grid-cols-1 lg:grid-cols-3 overflow-hidden">
 
 	<!-- Left Side Bar / Sub-context Menu (1/3 width) -->
@@ -20,6 +23,7 @@
 			Both columns will scroll independently without forcing the global application navbar
 			or left application sidebar to slide out of view.
 		</p>
+    <Globe />
 	</main>
 
 </div>
