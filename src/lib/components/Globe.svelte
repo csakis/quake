@@ -1,36 +1,63 @@
-<script>
-	import { onDestroy } from 'svelte';
-	import { getCesiumToken } from './token.remote.js';
+<script lang="ts">
+  import { getCesiumToken } from "./token.remote.js";
+  import type { Viewer } from "cesium";
 
-	let container = $state(null);
-	let viewer = null;
+  let viewer: Viewer | null = null;
 
-	$effect(() => {
-		if (!container) return;
+  function initCesium(node: HTMLDivElement) {
+    let isDestroyed = false;
+    let activeViewer: Viewer | null = null;
 
-		window.CESIUM_BASE_URL = '/cesium/';
+    // Create an internal async execution wrapper
+    async function setup() {
+      // 1. Fetch token and import the library concurrently
+      const [token, Cesium] = await Promise.all([getCesiumToken(), import("cesium")]);
 
-		// The server returns a string, but the browser must wait for the network packet
-		getCesiumToken().then((token) => {
-			import('cesium').then(async (Cesium) => {
-				Cesium.Ion.defaultAccessToken = token;
+      // Stop execution if the user navigated away while downloading files
+      if (isDestroyed) return;
 
-				viewer = new Cesium.Viewer(container, {
-					terrain: Cesium.Terrain.fromWorldTerrain()
-				});
+      Cesium.Ion.defaultAccessToken = token;
 
-				const buildingTileset = await Cesium.createOsmBuildingsAsync();
-				viewer.scene.primitives.add(buildingTileset);
-			});
-		});
-	});
+      // 2. Initialize the viewer directly on the DOM element node
+      activeViewer = new Cesium.Viewer(node, {
+        terrain: Cesium.Terrain.fromWorldTerrain()
+      });
+      viewer = activeViewer;
+      // Fly the camera to San Francisco at the given longitude, latitude, and height.
+      viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(-122.4175, 37.655, 400),
+        orientation: {
+          heading: Cesium.Math.toRadians(0.0),
+          pitch: Cesium.Math.toRadians(-15.0)
+        }
+      });
 
-	onDestroy(() => {
-		if (viewer && !viewer.isDestroyed()) {
-			viewer.destroy();
-		}
-	});
+      // Add Cesium OSM Buildings, a global 3D buildings layer.
+      const buildingTileset = await Cesium.createOsmBuildingsAsync();
+      viewer.scene.primitives.add(buildingTileset);
+
+      if (!isDestroyed) {
+        activeViewer.scene.primitives.add(buildingTileset);
+      } else {
+        activeViewer.destroy();
+      }
+    }
+
+    // Fire off the asynchronous setup process
+    setup();
+
+    // 4. Return the mandatory lifecycle teardown hook
+    return {
+      destroy() {
+        isDestroyed = true;
+        if (activeViewer && !activeViewer.isDestroyed()) {
+          activeViewer.destroy();
+          viewer = null;
+        }
+      }
+    };
+  }
 </script>
 
-<link rel="stylesheet" href="/cesium/Widgets/widgets.css" />
-<div bind:this={container} class="h-full w-full bg-black"></div>
+<!-- The action triggers automatically when this node enters the DOM -->
+<div use:initCesium class="h-full w-full bg-black"></div>

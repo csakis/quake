@@ -1,4 +1,4 @@
-import { query } from '$app/server'; // 👈 Fix: Import from $app/server
+import { query } from '$app/server';
 import { CESIUM_TOKEN } from '$app/env/private';
 
 export const fetchGeospatialData = query(async (datasetId = '12345') => {
@@ -13,4 +13,11 @@ export const fetchGeospatialData = query(async (datasetId = '12345') => {
 	}
 
 	return await response.json();
+});
+
+// This function compiles as an HTTP fetch wrapper on the client,
+// but executes strictly on your server backend.
+export const getCesiumToken = query(async () => {
+	return CESIUM_TOKEN;
+	;
 });

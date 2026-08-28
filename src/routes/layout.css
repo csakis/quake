@@ -1,3 +1,4 @@
+@import 'cesium/Build/Cesium/Widgets/widgets.css';
 @import 'tailwindcss';
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
